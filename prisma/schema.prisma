@@ -1,0 +1,407 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["referentialActions"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  firstName String
+  lastName  String
+  userName  String   @unique
+  password  String
+  roleId    String   @map("role_id") @db.Uuid
+  role      Role     @relation(fields: [roleId], references: [id])
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+}
+
+model Role {
+  id              String           @id @default(uuid()) @db.Uuid
+  name            String
+  users           User[]
+  permissions     Permission[]
+  rolePermissions RolePermission[]
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+}
+
+model Permission {
+  id              String           @id @default(uuid()) @db.Uuid
+  name            String
+  roles           Role[]
+  rolePermissions RolePermission[]
+}
+
+model RolePermission {
+  id           String @id @default(uuid()) @db.Uuid
+  roleId       String @map("role_id") @db.Uuid
+  permissionId String @map("permission_id") @db.Uuid
+
+  role       Role       @relation(fields: [roleId], references: [id])
+  permission Permission @relation(fields: [permissionId], references: [id])
+
+  @@unique([roleId, permissionId])
+}
+
+model Customer {
+  id        String   @id @default(uuid()) @db.Uuid
+  firstName String
+  lastName  String
+  tinNumber String
+  phone     String
+  address   String
+  sales     Sale[]
+  caTransactions  CATransaction[]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+}
+
+model Driver {
+  id               String   @id @default(uuid()) @db.Uuid
+  name             String
+  truckNumber      String
+  djboutiPhone     String
+  ethiopiaPhone    String
+  associationName  String
+  associationPhone String
+  ownerName        String
+  ownerPhone       String
+  driverId         String
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+}
+
+model Product {
+  id                String   @id @default(uuid()) @db.Uuid
+  name              String   @unique
+  productCategoryId String   @map("productCategory_id") @db.Uuid
+  category          ProductCategory  @relation(fields: [productCategoryId], references: [id])
+  unitOfMeasurement String
+  startingQuantity  Int
+  startingQuantityUnitPrice  Float
+  startingQuantityDate   DateTime
+  purchases         ProductPurchase[]
+  declarations      ProductDeclaration[]
+  sales             SaleDetail[]
+  inventories       Inventory[]
+  createdAt         DateTime             @default(now()) @map("created_at")
+  updatedAt         DateTime             @updatedAt @map("updated_at")
+}
+
+model ProductCategory{
+  id                String   @id @default(uuid()) @db.Uuid
+  name              String   @unique
+  products    Product[]
+}
+
+model Declaration {
+  id        String               @id @default(uuid()) @db.Uuid
+  number    String              
+  date      DateTime
+  paidAmount   Float?            @default(0)
+  products  ProductDeclaration[]
+  purchases ProductPurchase[]
+  sales     SaleDetail[]
+  caTransactions  CATransaction[]
+  createdAt DateTime             @default(now()) @map("created_at")
+  updatedAt DateTime             @updatedAt @map("updated_at")
+}
+
+model ProductDeclaration {
+  id                  String      @id @default(uuid()) @db.Uuid
+  declarationQuantity Int
+  totalIncomeTax      Float
+  unitIncomeTax       Float
+  declarationBalance  Float?
+  purchasedQuantity   Int
+  caTransactions CATransaction[]
+  productId           String      @map("product_id") @db.Uuid
+  product             Product     @relation(fields: [productId], references: [id])
+  declarationId       String      @map("declaration_id") @db.Uuid
+  declaration         Declaration @relation(fields: [declarationId], references: [id])
+  provisions          Provision[]
+  createdAt           DateTime    @default(now()) @map("created_at")
+  updatedAt           DateTime    @updatedAt @map("updated_at")
+}
+
+model Purchase {
+  id             String            @id @default(uuid()) @db.Uuid
+  date           DateTime?
+  number         Int?
+  truckNumber    String?
+  paidAmountETB  Float?           @default(0)
+  paidAmountUSD  Float?           @default(0)
+  exchangeRate   Float?
+  supplierId     String?           @map("supplier_id") @db.Uuid
+  supplier       Supplier?         @relation(fields:[supplierId], references:[id])
+  paymentStatus  String            @default("Incomplete")
+  products       ProductPurchase[]
+  transports     Transport[]
+  esls           ESL[]
+  transits      Transit[]
+  sales          SaleDetail[]
+  inventories    Inventory[]
+  caTransactions CATransaction[]
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+}
+
+model Transport {
+  id             String            @id @default(uuid()) @db.Uuid
+  date           DateTime
+  cost           Float?
+  unitTransportCost Float?
+  type           String
+  paymentStatus  String            @default("Incomplete")
+  productPurchaseId       String?         @db.Uuid @unique
+  productPurchase     ProductPurchase?    @relation(fields: [productPurchaseId], references: [id])
+  purchaseId              String          @map("purchase_id") @db.Uuid
+  purchase                Purchase        @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  paidAmount     Float?                   @default(0)
+  createdAt               DateTime        @default(now()) @map("created_at")
+  updatedAt               DateTime        @updatedAt @map("updated_at")
+}
+
+model ESL {
+  id             String            @id @default(uuid()) @db.Uuid
+  date           DateTime
+  cost           Float?
+  unitEslCost Float?
+  type           String
+  paymentStatus  String            @default("Incomplete")
+  productPurchaseId       String?         @db.Uuid @unique
+  productPurchase     ProductPurchase?    @relation(fields: [productPurchaseId], references: [id])
+  purchaseId              String          @map("purchase_id") @db.Uuid
+  purchase                Purchase        @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  paidAmount     Float?                   @default(0)
+  createdAt               DateTime        @default(now()) @map("created_at")
+  updatedAt               DateTime        @updatedAt @map("updated_at")
+}
+
+model Transit {
+  id             String            @id @default(uuid()) @db.Uuid
+  date           DateTime
+  cost           Float?
+  unitTransitCost Float?
+  type           String
+  paymentStatus  String            @default("Incomplete")
+  productPurchaseId       String?         @db.Uuid @unique
+  productPurchase     ProductPurchase?    @relation(fields: [productPurchaseId], references: [id])
+  purchaseId              String         @map("purchase_id") @db.Uuid
+  purchase                Purchase      @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  paidAmount     Float?                 @default(0)
+  createdAt               DateTime        @default(now()) @map("created_at")
+  updatedAt               DateTime        @updatedAt @map("updated_at")
+}
+
+
+model ProductPurchase {
+  id                      String          @id @default(uuid()) @db.Uuid
+  productId               String          @map("product_id") @db.Uuid
+  product                 Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  purchaseId              String?          @map("purchase_id") @db.Uuid
+  purchase                Purchase?        @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  declarationId           String?          @map("declaration_id") @db.Uuid
+  declaration             Declaration?     @relation(fields: [declarationId], references: [id])
+  purchaseQuantity        Int
+  remainingQuantity       Int?
+  purchaseUnitPriceETB    Float
+  purchaseUnitPriceUSD    Float?
+  purchaseTotalETB        Float?
+  purchaseUnitCostOfGoods Float?
+  inventories             Inventory[]
+  caTransactions          CATransaction[]
+  transit                 Transit?
+  transport               Transport?
+  esl                     ESL?
+  date           DateTime
+  sales                   SaleDetail[]
+  createdAt               DateTime        @default(now()) @map("created_at")
+  updatedAt               DateTime        @updatedAt @map("updated_at")
+}
+
+model Store {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  address   String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+}
+
+model Supplier {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  address   String
+  currency  String
+  purchases Purchase[]
+  caTransactions  CATransaction[]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+}
+
+model Sale {
+  id             String          @id @default(uuid()) @db.Uuid
+  invoiceNumber  Int
+  invoiceDate    DateTime
+  customerId     String          @map("customer_id") @db.Uuid
+  customer       Customer        @relation(fields: [customerId], references: [id])
+  paymentStatus  String            @default("Incomplete")
+  inventories    Inventory[]
+  sales          SaleDetail[]
+  caTransactions CATransaction[]
+  paidAmount     Float?          @default(0)
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+}
+
+model SaleDetail {
+  id              String          @id @default(uuid()) @db.Uuid
+  saleQuantity    Int
+  saleUnitPrice   Float
+  totalSales      Float
+  unitCostOfGoods Float
+  saleId          String          @map("sale_id") @db.Uuid
+  sale            Sale            @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productId       String          @map("product_id") @db.Uuid
+  product         Product         @relation(fields: [productId], references: [id])
+  productPurchaseId       String          @map("product_purchase_id") @db.Uuid
+  productPurchase         ProductPurchase         @relation(fields: [productPurchaseId], references: [id])
+  purchaseId      String          @map("purchase_id") @db.Uuid
+  purchase        Purchase        @relation(fields: [purchaseId], references: [id])
+  declarationId   String          @map("declaration_id") @db.Uuid
+  declaration     Declaration     @relation(fields: [declarationId], references: [id])
+  inventories     Inventory[]
+  caTransactions  CATransaction[]
+  provisions      Provision[]
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+}
+
+model ChartOfAccount {
+  id               String          @id @default(uuid()) @db.Uuid
+  name             String
+  accountTypeId    String          @map("accountType_id") @db.Uuid
+  accountType      AccountType     @relation(fields: [accountTypeId], references: [id])
+  accountSubTypeId String          @map("accountSubType_id") @db.Uuid
+  accountSubType   AccountSubType  @relation(fields: [accountSubTypeId], references: [id])
+  caTransactions   CATransaction[]
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+  bankTransactions  BankTransaction[]
+}
+
+model AccountType {
+  id              String           @id @default(uuid()) @db.Uuid
+  name            String
+  accountSubTypes AccountSubType[]
+  chartOfAccount  ChartOfAccount[]
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+}
+
+model AccountSubType {
+  id             String           @id @default(uuid()) @db.Uuid
+  name           String
+  accountTypeId  String           @map("accountType_id") @db.Uuid
+  chartOfAccount ChartOfAccount[]
+  accountType    AccountType      @relation(fields: [accountTypeId], references: [id])
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+}
+
+model Inventory {
+  id                String           @id @default(uuid()) @db.Uuid
+  purchaseId        String?          @map("purchase_id") @db.Uuid
+  purchase          Purchase?        @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  productPurchaseId String?          @map("product_purchase_id") @db.Uuid
+  productPurchase   ProductPurchase? @relation(fields: [productPurchaseId], references: [id], onDelete: Cascade)
+  saleDetailId      String?          @map("sale_detail_id") @db.Uuid
+  saleDetail        SaleDetail?      @relation(fields: [saleDetailId], references: [id])
+  saleId            String?          @map("sale_id") @db.Uuid
+  sale              Sale?            @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productId         String           @map("product_id") @db.Uuid
+  product           Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+  balanceQuantity   Float
+}
+
+model CATransaction {
+  id                String           @id @default(uuid()) @db.Uuid
+  chartofAccountId  String?           @map("chart_of_account_id") @db.Uuid
+  chartofAccount    ChartOfAccount?   @relation(fields: [chartofAccountId], references: [id])
+  bankTransactionId  String?                      @map("bank_transaction_id") @db.Uuid
+  bankTransaction    BankTransaction?   @relation(fields: [bankTransactionId], references: [id])
+  purchaseId        String?          @map("purchase_id") @db.Uuid
+  purchase          Purchase?        @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  saleId            String?          @map("sale_id") @db.Uuid
+  sale              Sale?            @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  declarationId            String?          @map("declaration_id") @db.Uuid
+  declaration              Declaration?            @relation(fields: [declarationId], references: [id], onDelete: Cascade)
+  productPurchaseId String?          @map("product_purchase_id") @db.Uuid
+  productPurchase   ProductPurchase? @relation(fields: [productPurchaseId], references: [id], onDelete: Cascade)
+  saleDetailId      String?          @map("sale_detail_id") @db.Uuid
+  saleDetail        SaleDetail?      @relation(fields: [saleDetailId], references: [id], onDelete: Cascade)
+  supplierId        String?          @map("supplier_id") @db.Uuid
+  supplier          Supplier?         @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  customerId        String?          @map("customer_id") @db.Uuid
+  customer          Customer?         @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  productDeclarationId        String?          @map("product_declaration_id") @db.Uuid
+  productDeclaration          ProductDeclaration?         @relation(fields: [productDeclarationId], references: [id], onDelete: Cascade)
+  date              DateTime
+  type              String
+  remark            String?
+  credit            Float?
+  debit             Float?
+  exchangeRate      Float?
+  USDAmount         Float?
+  number            Float?
+  accountPayableRecievableDetail   String?
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+}
+
+model Bank {
+  id               String          @id @default(uuid()) @db.Uuid
+  name             String
+  address          String
+  startingValue    Float
+  startingValueDate  DateTime 
+  bankTransactions   BankTransaction[]
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+}
+
+model BankTransaction {
+  id               String          @id @default(uuid()) @db.Uuid
+  payee            String?
+  foreignCurrency  Float?
+  balance          Float
+  payment          Float?
+  deposit          Float?
+  type             String?
+  bankId           String          @map("bank_id") @db.Uuid
+  bank             Bank            @relation(fields: [bankId], references: [id], onDelete: Cascade)
+  chartofAccountId String?         @map("chart_of_account_id") @db.Uuid 
+  chartofAccount   ChartOfAccount? @relation(fields: [chartofAccountId], references: [id])
+  exchangeRate     Float?
+  caTransactions  CATransaction[]
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+}
+
+model Provision {
+  id               String          @id @default(uuid()) @db.Uuid
+  date             DateTime
+  saleDetailId     String      @map("sale_detail_id") @db.Uuid
+  saleDetail       SaleDetail    @relation(fields: [saleDetailId], references: [id], onDelete: Cascade)
+  productDeclarationId     String      @map("product_declaration_id") @db.Uuid
+  productDeclaration       ProductDeclaration    @relation(fields: [productDeclarationId], references: [id], onDelete: Cascade)
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+}
